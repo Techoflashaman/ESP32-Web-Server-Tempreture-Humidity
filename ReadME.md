@@ -1,0 +1,220 @@
+
+# ESP32 Web Server Tempreture & Humidity
+
+Building an asynchronous ESP32 web server with the DHT11 that displays temperature and humidity using VS Code (Arduino IDE Extension).
+To build the web server we’ll use the ESPAsyncWebServer library that provides an easy way to build an asynchronous web server.
+
+
+
+
+## Components Used
+
+### Hardware
+
+1. ESP32 DEV Kit
+2. DHT11 Sensor
+3. Wires & Breadboard
+4. Power Supply 
+
+### Software
+
+1. VS Code (Arduino IDE Extension)
+
+
+
+## Schematic 
+
+<img src="https://firebasestorage.googleapis.com/v0/b/common-project-63634.appspot.com/o/ESP32%20web%20server%20temp%20%26%20humidity%2FImg5.PNG?alt=media&token=f37657d8-b913-4fad-95ac-975f783815d3"></img>
+
+## Result
+
+<img src="https://firebasestorage.googleapis.com/v0/b/common-project-63634.appspot.com/o/ESP32%20web%20server%20temp%20%26%20humidity%2FImg1.PNG?alt=media&token=40d7181e-e055-4e85-8dc7-3c4a87406df1"></img>
+
+<img src="https://firebasestorage.googleapis.com/v0/b/common-project-63634.appspot.com/o/ESP32%20web%20server%20temp%20%26%20humidity%2FImg4jpg.jpg?alt=media&token=b01efc02-7e01-414c-b214-5c10add6cd40"></img>
+
+<img src="https://firebasestorage.googleapis.com/v0/b/common-project-63634.appspot.com/o/ESP32%20web%20server%20temp%20%26%20humidity%2FImg2.PNG?alt=media&token=5b22a55a-2e07-41a2-88b1-b6ec937723ca"></img>
+
+<img src="https://firebasestorage.googleapis.com/v0/b/common-project-63634.appspot.com/o/ESP32%20web%20server%20temp%20%26%20humidity%2FImg3.PNG?alt=media&token=7e1d6aa8-ea3e-4feb-8513-ed98b041c662"></img>
+
+## Code 
+
+```javascript
+/*
+Author: Mohd Aman Ansari
+embed
+https://embed.org.in
+*/
+
+#include "WiFi.h"
+#include "ESPAsyncWebServer.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+
+// Replace with your network credentials
+const char *ssid = "********************";
+const char *password = "****************";
+
+#define DHTPIN 4 // Digital pin connected to the DHT sensor
+
+// Uncomment the type of sensor in use:
+#define DHTTYPE DHT11 // DHT 11
+// #define DHTTYPE    DHT22     // DHT 22 (AM2302)
+// #define DHTTYPE    DHT21     // DHT 21 (AM2301)
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
+String readDHTTemperature()
+{
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    // Read temperature as Celsius (the default)
+    float t = dht.readTemperature();
+    // Read temperature as Fahrenheit (isFahrenheit = true)
+    // float t = dht.readTemperature(true);
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(t))
+    {
+        Serial.println("Failed to read from DHT sensor!");
+        return "--";
+    }
+    
+        Serial.print("Tempreture : ");
+        Serial.println(t);
+        return String(t);
+
+}
+
+String readDHTHumidity()
+{
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    float h = dht.readHumidity();
+    if (isnan(h))
+    {
+        Serial.println("Failed to read from DHT sensor!");
+        return "--";
+    }
+    else
+    {
+        Serial.print("Humidity : ");
+        Serial.println(h);
+        return String(h);
+    }
+}
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <style>
+    html {
+     font-family: Arial;
+     display: inline-block;
+     margin: 0px auto;
+     text-align: center;
+    }
+    h2 { font-size: 3.0rem; }
+    p { font-size: 3.0rem; }
+    .units { font-size: 1.2rem; }
+    .dht-labels{
+      font-size: 1.5rem;
+      vertical-align:middle;
+      padding-bottom: 15px;
+    }
+  </style>
+</head>
+<body style="background-image: url('https://imgs.search.brave.com/DZc9ugTKBK6oTQ34GBLUI3m1ZX2CLpEUMh8dPbwEtu0/rs:fit:759:225:1/g:ce/aHR0cHM6Ly90c2Uz/Lm1tLmJpbmcubmV0/L3RoP2lkPU9JUC5S/WUlIU0JjRHpSTHlC/R0Y4Q3ZDR1lBSGFF/byZwaWQ9QXBp'); background-repeat: no-repeat; background-size: cover; ">
+<div style="background: rgba( 255, 255, 255, 0.25 ); box-shadow: 0 8px 32px 0 rgba( 31, 38, 135, 0.37 ); backdrop-filter: blur( 4px ); -webkit-backdrop-filter: blur( 4px );  padding: 24px; border-radius: 16px;">
+  <h2>ESP32 DHT Server</h2>
+  <p>
+    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i> 
+    <span class="dht-labels">Temperature</span> 
+    <span id="temperature">%TEMPERATURE%</span>
+    <sup class="units">&deg;C</sup>
+  </p>
+  <p>
+    <i class="fas fa-tint" style="color:#00add6;"></i> 
+    <span class="dht-labels">Humidity</span>
+    <span id="humidity">%HUMIDITY%</span>
+    <sup class="units">&percnt;</sup>
+  </p>
+</div>
+</body>
+<script>
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("temperature").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/temperature", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("humidity").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/humidity", true);
+  xhttp.send();
+}, 10000 ) ;
+</script>
+</html>)rawliteral";
+
+// Replaces placeholder with DHT values
+String processor(const String &var)
+{
+    // Serial.println(var);
+    if (var == "TEMPERATURE")
+    {
+        return readDHTTemperature();
+    }
+    else if (var == "HUMIDITY")
+    {
+        return readDHTHumidity();
+    }
+    return String();
+}
+
+void setup()
+{
+    // Serial port for debugging purposes
+    Serial.begin(115200);
+
+    dht.begin();
+  
+
+    // Connect to Wi-Fi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(1000);
+        Serial.println("Connecting to WiFi..");
+    }
+  
+    // Print ESP32 Local IP Address
+    Serial.println(WiFi.localIP());
+
+    // Route for root / web page
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send_P(200, "text/html", index_html, processor); });
+    server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send_P(200, "text/plain", readDHTTemperature().c_str()); });
+    server.on("/humidity", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send_P(200, "text/plain", readDHTHumidity().c_str()); });
+
+    // Start server
+    server.begin();
+
+}
+
+void loop()
+{
+}
